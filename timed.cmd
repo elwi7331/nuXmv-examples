@@ -1,0 +1,4 @@
+go_time
+timed_check_invar
+timed_check_ltlspec
+quit
