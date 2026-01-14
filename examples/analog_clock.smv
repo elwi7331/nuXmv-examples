@@ -1,0 +1,29 @@
+MODULE main
+/-- 
+    Model of an analog clock with minute and hour arms,
+    as well as output variables that tell digital time (12h)
+    
+    The clock has hour labels 1 through 12, and 5 minute marks
+    per hour label such that the 1 hour mark coinicides with the 15 minutes mark, etc.
+--/
+VAR
+    minute_hand: 0..59;
+    hour_hand: 0..59;
+    digital_minute: 0..59;
+    digital_hour: 1..12;
+ASSIGN
+    init(minute_hand) := 0;
+    init(hour_hand) := 0;
+    next(minute_hand) := (minute_hand + 1) mod 60;
+    next(hour_hand) := ((next(minute_hand) mod 12) = 0 ? ((hour_hand + 1) mod 60) : hour_hand);
+    digital_minute := minute_hand;
+    digital_hour := (hour_hand / 5) > 0 ? hour_hand / 5 : 12;
+
+LTLSPEC -- the clock will eventually show 1:30
+    F(digital_hour = 1 & digital_minute = 30)
+LTLSPEC -- the clock will show 12:00 an infinite number of times
+    G(F(digital_hour = 12 & digital_minute = 0))
+LTLSPEC -- on whole hours, the hour-hand is positioned at a digit
+    G(minute_hand = 0 -> (hour_hand mod 5 = 0))
+LTLSPEC -- quarter past, the hour hand will not be precisely at a digit
+    !F(minute_hand = 15 & (hour_hand mod 5 = 0))
