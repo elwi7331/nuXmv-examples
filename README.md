@@ -1,4 +1,4 @@
-# nuSmv Examples
+# nuXmv Examples
 
 ## Dependencies
 _nuXmv_

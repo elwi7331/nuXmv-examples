@@ -1,0 +1,94 @@
+@TIME_DOMAIN continuous
+
+/-- Model of a rate monotonic scheduler (as I understand it). --/
+
+/--
+    Job is dispatched periodically, starting at time=0.
+    When scheduled the job can be executed, which takes between
+    [exex_lower, exec_upper] time units.
+
+    @param period: new job every period
+    @param exec_lower: time to execute job >= exec_lower
+    @param exec_upper: time to execute job <= exec_lower
+--/
+MODULE Task(period, exec_lower, exec_upper)
+    VAR
+        period_clock: clock;
+        exec_clock: clock;
+        exec_progress: real;
+        job: boolean;
+        scheduled: boolean;
+    DEFINE
+        total_execution := exec_clock + exec_progress;
+    INIT
+        period_clock = 0 &
+        exec_clock = 0 &
+        exec_progress = 0 &
+        job
+    INVAR
+        (TRUE -> (period_clock <= period)) &
+        (scheduled -> (total_execution <= exec_upper))
+    TRANS
+        next(exec_clock) = case
+            period_clock >= period: 0; -- reset at end of period
+            !scheduled & next(scheduled) : 0; -- reset at start of new execution fragment
+            TRUE : exec_clock;
+        esac &
+        next(exec_progress) = case
+            period_clock >= period : 0; -- reset at end of period
+            scheduled & !next(scheduled) : exec_progress + exec_clock; -- update after execution fragment
+            TRUE : exec_progress;
+        esac &
+        next(period_clock) = case
+            period_clock >= period: 0; -- reset at end of period
+            TRUE : period_clock;
+        esac &
+        next(job) = case
+            period_clock >= period : TRUE; -- create job at end of period
+            job & exec_lower <= total_execution : FALSE; -- task is done
+            TRUE : job;
+        esac
+    INVARSPEC
+        scheduled -> job
+
+MODULE Scheduler
+    DEFINE
+        a_period := f'1/2;
+        a_exec_lower := 0.05;
+        a_exec_upper := 0.1;
+
+        b_period := 1;
+        b_exec_lower := 0.05;
+        b_exec_upper := 0.1;
+    VAR
+        a: Task(a_period, a_exec_lower, a_exec_upper);
+        b: Task(b_period, b_exec_lower, b_exec_upper);
+    INVAR
+        (a.scheduled) = case
+            !a.job: FALSE;
+            (a.job & (!b.job | a_period < b_period)) : TRUE;
+            TRUE : FALSE;
+        esac &
+        (b.scheduled) = case
+            !b.job: FALSE;
+            (b.job & (!a.job | b_period < a_period)) : TRUE;
+            TRUE : FALSE;
+        esac
+    URGENT
+        -- if there are jobs but nothing scheduled, time does not pass
+        (a.job | b.job) &
+        !(a.scheduled | b.scheduled)
+
+    INVARSPEC
+        -- tasks can not be scheduled simultaneously
+        !(a.scheduled & b.scheduled)
+    LTLSPEC
+        -- the first job is not completed at t = 1/21 (< exec_lower)
+        !F[0,f'1/21](!a.job)
+    LTLSPEC
+        -- a job will always exist within 1 period
+        G(F[0,f'1/2](a.job))
+
+MODULE main
+    VAR
+        scheduler: Scheduler;
