@@ -1,0 +1,66 @@
+@TIME_DOMAIN continuous
+
+/--
+Model of a traffic light
+
+Duration | Red | Yellow | Green
+---------x-----x--------x------
+3        | On  | Off    | Off  
+1        | On  | On     | Off  
+3        | Off | Off    | On   
+2        | Off | On     | Off  
+... repeating
+--/
+
+MODULE main
+VAR
+    red: boolean;
+    yellow: boolean;
+    green: boolean;
+    c: clock;
+INIT
+    -- Initial state can be any of the valid rgy combinations.
+    (
+        (red & !yellow & !green) |
+        (red & yellow & !green) |
+        (!red & !yellow & green) |
+        (!red & yellow & !green)
+    ) &
+    -- c is always 0 at start.
+    c = 0
+INVAR
+    (TRUE -> c <= 3) &
+    ((red & yellow) -> c <= 1) &
+    (yellow -> c <= 2)
+TRANS
+    (next(c) = 0) & -- on all discrete transitions, clock is zeroed
+    ((red & !yellow & !green) -> (next(red) & next(yellow) & !next(green) & c >= 3)) &
+    ((red & yellow & !green) -> (!next(red) & !next(yellow) & next(green) & c >= 1)) &
+    ((!red & !yellow & green) -> (!next(red) & next(yellow) & !next(green) & c >= 3)) &
+    ((!red & yellow & !green) -> (next(red) & !next(yellow) & !next(green) & c >= 2))
+
+INVARSPEC
+    -- light can not be green and red simultaneously
+    !(red & green)
+INVARSPEC
+    -- light can not be green and yellow simultaneously
+    !(green & yellow)
+
+LTLSPEC
+    -- all light combinations will occur infinitely many times
+    G(F(red & !yellow & !green) & F(red & yellow & !green) & F(!red & !yellow & green) & F(!red & yellow & !green))
+LTLSPEC
+    -- when the light becomes green, it will remain so for 3 - epsilon time units
+    G(green & c = 0 -> G[0,2.999999999](green))
+LTLSPEC
+    -- if the light is green, there are at least 2 time units left until light turns red
+    G(green -> time_until(red) >= 2)
+LTLSPEC
+    -- the light green light will always be on within 6 time units
+    G(time_until(green) <= 6)
+LTLSPEC
+    -- red & yellow -> at most 1 time units left until light turns green
+    G(red & yellow -> time_until(green) <= 1)
+LTLSPEC
+    -- yellow & !red -> at most 2 time units left until light turns red
+    G(yellow & !red -> time_until(red) <= 2)
