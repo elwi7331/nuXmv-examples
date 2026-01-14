@@ -1,0 +1,86 @@
+@TIME_DOMAIN continuous
+
+/--
+Model of a pedestrian crossing with traffic lights for pedestrians and cars:
+
+          pedestrian crossing      
+                 |                 
+x----------------V----------------x
+|                =                |
+|- - - - - - - - = - - - - - - - -| } road
+|                =                |
+x---------------------------------x
+
+The pedestrian light can only turn green if a button has been pressed the button.
+Light holds its state for 20 seconds.
+
+--/
+
+MODULE zebra_engine(button)
+VAR
+    go: {car, pedestrian};
+    pedestrian_request: boolean;
+    waiting: boolean;
+    timer: clock;
+INIT
+    go = car &
+    !pedestrian_request &
+    timer = 0 &
+    waiting = TRUE
+INVAR
+    -- pedestrians can not request green light while light is green
+    go = pedestrian -> !pedestrian_request
+TRANS
+    -- request remains until pedestrian light turns green
+    (next(go) = car & pedestrian_request) -> next(pedestrian_request)
+TRANS
+    -- button triggers request
+    (next(go) = car & button) -> next(pedestrian_request)
+TRANS
+    -- no button -> request is not made
+    (!pedestrian_request & !button) -> !next(pedestrian_request)
+TRANS
+    next(go) = case
+        !waiting & pedestrian_request : pedestrian;
+        waiting : go; -- keep old state during waiting period
+        TRUE : car; -- default to car
+    esac
+INVAR
+    (waiting -> timer <= 20) &
+    (!waiting -> timer >= 20)
+URGENT
+    !waiting
+TRANS
+    next(timer) = case
+        next(go) != go : 0; -- reset timer when light switches
+        TRUE : timer;
+    esac
+
+MODULE main
+VAR
+    button: boolean;
+    engine: zebra_engine(button);
+    car_light: {green, red};
+    pedestrian_light: {green, red};
+INVAR
+    (engine.go = car -> (car_light = green & pedestrian_light = red)) &
+    (engine.go = pedestrian -> (car_light = red & pedestrian_light = green))
+
+INVARSPEC
+    -- cars and pedestrians can not go at the same time
+    !((car_light = green) & (pedestrian_light = green))
+LTLSPEC
+    -- if pedestrian button is never pressed -> car light will be green indefinitely
+    G(!button) -> G(car_light = green)
+LTLSPEC
+    -- after pressing the button -> pedestrian light will turn green within 20 seconds
+    G(button -> F[0,20](pedestrian_light = green))
+LTLSPEC
+    -- when pedestrians cross -> cars will be let through within 20 seconds
+    G(pedestrian_light = green -> F[0,20](car_light = green))
+LTLSPEC
+    -- the cars will always have a green light to look forward to
+    G(F(car_light = green))
+LTLSPEC
+    -- for the first (20 - epsilon) seconds, cars will be let through
+    G[0,19.99999999](car_light = green)
