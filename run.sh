@@ -17,9 +17,9 @@ fi
 
 if [[ $1 =~ _timed ]]; then
     if [[ $2 = "-v" ]]; then
-        time "$nuxmv" -source "$cmd" -time "$1"
+        "$nuxmv" -source "$cmd" -time "$1"
     else
-        (time "$nuxmv" -source "$cmd" -time "$1") | grep -v -e "\*\*\*" -e "no proof or counterexample" -e "^$"
+        ("$nuxmv" -source "$cmd" -time "$1") | grep -v -e "\*\*\*" -e "no proof or counterexample" -e "^$"
     fi
 else
     "$nuxmv" "$1"
