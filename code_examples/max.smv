@@ -1,0 +1,41 @@
+/--
+    Ad hoc translation of max.c
+--/
+
+MODULE m
+    VAR
+        a: integer;
+        b: integer;
+        out: integer;
+
+    DEFINE
+        keep_a := next(a) = a;
+        keep_b := next(b) = b;
+        keep_ab := keep_a & keep_b;
+        keep_out := next(out) = out;
+    
+    VAR l: {0, 1, 2, return};
+    INIT l= 0
+
+    TRANS keep_ab -- as there are no reassignments, this applies across all locations
+    TRANS l = 0 -> next(l) = (a > b ? 1 : 2)
+    TRANS l = 1 -> (next(out) = a & next(l) = return)
+    TRANS l = 2 -> (next(out) = b & next(l) = return)
+    TRANS l = return -> (keep_out & next(l) = return)
+
+MODULE main
+FROZENVAR
+    a_0: integer;
+    b_0: integer;
+
+VAR fun: m;
+
+-- precondition
+INIT fun.a = a_0 & fun.b = b_0
+
+-- postcondition
+LTLSPEC
+    G(fun.l = return -> (
+        fun.out >= a_0 &
+        fun.out >= b_0
+    ))
