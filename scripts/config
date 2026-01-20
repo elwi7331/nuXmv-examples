@@ -1,0 +1,9 @@
+# user fills out:
+c2kratos="path/to/python/script"
+nuxmv="path/to_nuxmv_binary"
+python="path/to/python/or/venv"
+
+# should not require changing
+config_dir=${0:h}
+timed_cmd="$config_dir/timed.cmd"
+infinite_cmd="$config_dir/infinite.cmd"

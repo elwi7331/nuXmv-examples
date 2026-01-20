@@ -1,0 +1,5 @@
+go_msat
+check_invar_ic3
+check_ltlspec_ic3
+time
+quit
