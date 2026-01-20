@@ -1,3 +1,4 @@
+set on_failure_script_quits
 go_msat
 check_invar_ic3
 check_ltlspec_ic3
