@@ -16,4 +16,4 @@ if [[ ! -f $1 ]]; then
 fi
 
 "$python" "$c2kratos" --builtin-assert assert -o "$2".k2 "$1"
-"$kratos" -trans-output_format=nuxmv -output_file="$2" "$2".k2
+"$kratos" -trans_output_format=nuxmv -output_file="$2" "$2".k2
