@@ -1,5 +1,6 @@
 # user fills out:
 c2kratos="path/to/python/script"
+kratos="path/to/kratos_binary
 nuxmv="path/to_nuxmv_binary"
 python="path/to/python/or/venv"
 
