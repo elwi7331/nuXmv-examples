@@ -1,0 +1,75 @@
+@TIME_DOMAIN continuous
+
+/--
+Fair solution to the Dining Philosophers problem.
+
+Five philosophers sit around a table. Between each of them lies a fork.
+To eat, a philosopher needs to hold the fork to his right AND the one to his left.
+The problem lies in preventing deadlocks, and starvation.
+
+.......................
+...........P...........
+........f.....f........
+......P.........P......
+.......f.......f.......
+.........P.f.P.........
+.......................
+.......................
+
+The solution forces philosophers to hold either both forks at the same time, or none at all.
+Fairness is ensured by restricting for how long philosopher's can eat,
+and for how long they can/must reflect between meals.
+--/
+
+MODULE Philosopher(id, left_fork, right_fork)
+  VAR
+    state: {thinking, eating};
+    c: clock;
+  INIT
+    c = 0
+  TRANS
+    -- clock resets
+    (state != next(state) & next(c) = 0) |
+    (state = next(state) & next(c) = c)
+  INVAR
+    -- philosopher eat for AT MOST 1/2 time unit
+    state = eating -> c <= 0.5
+  INVAR
+    -- philosophers think for AT MOST 1 time unit between meals
+    state = thinking -> c <= 1
+  TRANS
+    -- philosophers think for AT LEAST 1/2 time unit beween meals
+    state = thinking & next(state) = eating -> c >= 0.5
+  INVAR
+    -- philosopher eat when holding both forks
+    state = eating <-> (left_fork = id & right_fork = id)
+  INVAR
+    -- philosopher can not hold one fork while waiting for the other
+    state = thinking <-> (left_fork != id & right_fork != id)
+  TRANS
+    -- when finished eating, put both forks down
+    state = eating & next(state) = thinking -> (next(left_fork) = down & next(right_fork) = down)
+  LTLSPEC
+    -- philosophers do not commit gluttony
+    !G(state = eating)
+  LTLSPEC
+    -- philosophers that eat will return to their calling within in the next time unit
+    -- this spec encompasses the one immediately above
+    G(state = eating -> F[0, 1](state = thinking))
+  LTLSPEC
+    -- philosophers do not starve
+    G(F(state = eating))
+
+MODULE main
+  VAR
+    fork0: {down, 4, 0};
+    fork1: {down, 0, 1};
+    fork2: {down, 1, 2};
+    fork3: {down, 2, 3};
+    fork4: {down, 3, 4};
+
+    phil0: Philosopher(0, fork0, fork1);
+    phil1: Philosopher(1, fork1, fork2);
+    phil2: Philosopher(2, fork2, fork3);
+    phil3: Philosopher(3, fork3, fork4);
+    phil4: Philosopher(4, fork4, fork0);
