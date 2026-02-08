@@ -58,13 +58,14 @@ TRANS
 
 MODULE main
 VAR
-    button: boolean;
     engine: zebra_engine(button);
     car_light: {green, red};
     pedestrian_light: {green, red};
 INVAR
     (engine.go = car -> (car_light = green & pedestrian_light = red)) &
     (engine.go = pedestrian -> (car_light = red & pedestrian_light = green))
+IVAR
+    button: boolean;
 
 INVARSPEC
     -- cars and pedestrians can not go at the same time
