@@ -10,8 +10,8 @@ VAR
     c: clock;
 INIT
     s = 1 & c = 0
-TRANS -- from s_2, we can only transition to s_1
-    s = 2 -> next(s) = 1
+TRANS
+    next(s) != s
 TRANS -- clock only changes discretely on reset
     next(c) = (s = 1 & next(s) = 2 ? 0 : c)
 INVAR
