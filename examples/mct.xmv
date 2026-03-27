@@ -1,0 +1,62 @@
+@TIME_DOMAIN continuous
+
+/-- Working example of my "improved" version of the mct property
+from the RE'24 paper by Ung, Amilon, Gurov, Lidström, Nyberg, Palmskog
+doi:10.1109/RE59067.2024.00035
+
+s toggles between 0 and 1. It is always 1 for ~1 time unit.
+Time does not elapse when s = 0.
+
+Both mine and KTH's properties requires that s1duration > 1.
+Otherwise, G[0,1](s=1) never holds (even in the first point where s=1),
+as the discrete transition back to 0 happens within 1 time unit.
+
+The KTH property is equivalent to the "strict version" (without time_until).
+That is, it does not accept behavior where s can go from 1->0->1 before time starts elapsing.
+--/
+
+MODULE main
+DEFINE
+    s1duration := 1.000001;
+VAR
+    s: {0, 1};
+    c: clock;
+INIT
+    s = 0 &
+    c = 0
+
+TRANS
+    next(s) = ((s = 1 & c = s1duration) ? 0 : 1)
+TRANS
+    next(c) = (c < s1duration ? c : 0)
+
+URGENT
+    s = 0
+INVAR
+    s = 1 -> c <= s1duration 
+INVAR
+    s = 0 -> c = 0
+JUSTICE
+    TRUE
+
+LTLSPEC -- demonstrates that clocks can be used in specifications
+    G((s = 1 & Y(s = 0)) -> c = 0)
+
+LTLSPEC -- demonstrates why s1duration > 1
+    !F(G[0,s1duration](s = 1))
+
+LTLSPEC -- ensure that implications below are not vacuous
+    F(s = 1 & O[0,0.1](s != 1)) -- my version
+    & F(s = 1 & Y(s = 0))       -- kth version
+
+LTLSPEC -- KTH version
+    G(  (s = 1 & O[0,0.1](s != 1))
+        -> G[0,0.9](s = 1))
+
+LTLSPEC -- my specification pattern
+    G( (s = 1 & Y(s = 0))
+       -> G[0,1](s = 1))
+
+LTLSPEC -- version of the pattern that allows s to switch back and forth before time elapses
+    G(  (s = 1 & Y(s = 0))
+        -> time_until(G[0,1](s = 1)) = 0)
