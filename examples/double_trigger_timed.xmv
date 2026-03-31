@@ -1,0 +1,47 @@
+@TIME_DOMAIN continuous
+
+/-- Demonstration of my rewritten property from the RE'24 paper
+in MTL_0,inf.
+--/
+
+MODULE trigger_wrapper(duration)
+VAR
+    t: boolean;
+    c: clock;
+INIT
+    c = 0
+TRANS
+    (next(t) xor t) ? next(c) = 0 : next(c) = c
+INVAR
+    t -> c <= duration
+TRANS
+    t & next(!t) -> c = duration
+
+MODULE main
+VAR
+    a: trigger_wrapper(6.1);
+    b: trigger_wrapper(1.1);
+    c: boolean;
+TRANS
+    a.t & !next(a.t) <-> b.t & !next(b.t)
+INVAR
+    !c -> b.c < 0.5
+FAIRNESS
+    a.t
+
+-- #################### TRUE PROPERTIES ####################
+LTLSPEC -- equivalent to rhs of implication
+    F[10,+oo)((F[0,1]b.t) & H[0,5](a.t))
+LTLSPEC -- vacuousness check
+    F[10,+oo)(H[0,1]( b.t S[0,1]H[0,5]a.t ))
+LTLSPEC -- very slow for such a small model XD
+    G[10,+oo)((H[0,1]( b.t S[0,1]H[0,5]a.t )) -> c)
+
+-- #################### FALSE PROPERTIES ####################
+
+-- these two properties demonstrate the edge case semantics of past operators
+-- when referring to time before 0.
+LTLSPEC
+    G((b.t S H[0,5](a.t)) -> time > 0)
+LTLSPEC
+    G(H[0,5](a.t) -> time > 0)
