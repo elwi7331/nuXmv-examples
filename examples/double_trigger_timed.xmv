@@ -4,20 +4,25 @@
 in MTL_0,inf.
 --/
 
+-- t is held at TRUE for duration
 MODULE trigger_wrapper(duration)
 VAR
     t: boolean;
     c: clock;
 INIT
     c = 0
-TRANS
+TRANS -- reset clock when t toggles
     (next(t) xor t) ? next(c) = 0 : next(c) = c
 INVAR
     t -> c <= duration
-TRANS
+TRANS -- t is held
     t & next(!t) -> c = duration
 
-MODULE main
+/--
+    a.t, b.t, and c are constrained such that
+    our rewritten property will hold
+--/
+MODULE Foo
 VAR
     a: trigger_wrapper(6.1);
     b: trigger_wrapper(1.1);
@@ -31,7 +36,7 @@ FAIRNESS
 
 -- #################### TRUE PROPERTIES ####################
 LTLSPEC -- equivalent to rhs of implication
-    F[10,+oo)((F[0,1]b.t) & H[0,5](a.t))
+    F[10,+oo)((H[0,1]b.t) & H[0,5](a.t))
 LTLSPEC -- vacuousness check
     F[10,+oo)(H[0,1]( b.t S[0,1]H[0,5]a.t ))
 LTLSPEC -- very slow for such a small model XD
@@ -45,3 +50,17 @@ LTLSPEC
     G((b.t S H[0,5](a.t)) -> time > 0)
 LTLSPEC
     G(H[0,5](a.t) -> time > 0)
+
+/--
+    Experimental check of equivalence
+--/
+MODULE Bar
+VAR
+    a: trigger_wrapper(6.1);
+    b: trigger_wrapper(1.1);
+LTLSPEC -- will it terminate??
+    F[10,+oo)((H[0,1]b.t) & H[0,5](a.t)) <-> F[10,+oo)(H[0,1]( b.t S[0,1]H[0,5]a.t ))
+
+MODULE main
+VAR
+    foo: Foo;
