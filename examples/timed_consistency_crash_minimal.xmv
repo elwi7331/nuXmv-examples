@@ -1,0 +1,27 @@
+@TIME_DOMAIN continuous
+
+/-- Crashes on check_consistency -r "0,1".
+Does not crash if:
+    module Bar replaces main,
+        or
+    non bounded G operator is used instead
+--/
+
+MODULE Foo
+VAR
+    f: boolean;
+
+MODULE Bar
+VAR
+    foo: Foo;
+    b: boolean;
+INVAR
+    foo.f -> b
+LTLSPEC
+    G[0,+oo)(foo.f -> b)
+LTLSPEC
+    TRUE
+
+MODULE main
+VAR
+    bar: Bar;
